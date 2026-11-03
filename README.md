@@ -1,36 +1,44 @@
-# ARCS Grant Finder v4
+# ARCS Grant Finder v6 — live opportunity search and IRS foundation history
 
-A local Streamlit research application covering **City Grants, King County & 4Culture, Washington State, Private Foundations, Federal Grants**. Includes the 21 historical v3 leads, live federal API search (requires personal API key), flexible CSV imports, manual state/county/city/foundation collection, unified relevance scoring, exact duplicate merges, fuzzy duplicate warnings, application tracker and CSV export.
+## What's different from v5
 
-## Run locally
+- **Official-site deadline extraction:** identifies a deadline only when a specific date appears in the same paragraph/list item as explicit application-deadline language. Multiple conflicting dates => blank, marked for review. The original sentence is displayed. A past extracted date is labelled closed (date passed), not automatically verified closed by the funder.
+- **Eligibility evidence:** extracts exact paragraphs with stated eligibility or applicant rules. **It does not certify ARCS's eligibility.** The source website is linked for confirmation.
+- **Live foundation grant history:** scans the publicly accessible, IRS-derived NCCS 990-PF grants-paid table and looks for historical grants to arts and cultural recipients, weighted toward Washington. Maps recipient/amount/purpose to grantmaking foundation from the filing header. Entries are marked **Historical funding lead — application unverified**, never as open grant applications.
+- **Federal live API:** uses your existing Simpler.Grants.gov key stored under `SIMPLER_GRANTS_API_KEY` in Streamlit secrets.
+- **No imported grant CSV is required.**
 
-Install Python 3.10+. Unzip this folder and open a terminal inside `ARCS_Grant_Finder_v4`:
+## Updating the existing GitHub deployment
 
-```bash
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
+Upload/replace these files in the *root* of `sandaberar/ARCS-Grant-Finder`: `app.py`, `discovery.py`, `federal.py`, `foundations.py`, `verification.py`, and `requirements.txt`. You can also replace `README.md` and upload `tests/` if you like. Do NOT upload `__pycache__` or the API key. Commit changes. Streamlit should redeploy automatically.
+
+Your existing secrets setting should still be:
+
+```toml
+SIMPLER_GRANTS_API_KEY = "your-real-key"
 ```
 
-Streamlit displays a browser URL, normally `http://localhost:8501`. Stop by pressing Ctrl+C in the terminal.
+## Local run
 
-## Federal
-
-Get a Simpler.Grants.gov API key from https://simpler.grants.gov/developers . Enter it in the **Federal live search** tab (or set `SIMPLER_GRANTS_API_KEY` environment variable). Click Search, inspect results, then Add federal results to unified list. The live request cannot be validated without your API key. API docs: https://wiki.simpler.grants.gov/product/api/search-opportunities .
-
-## Washington state and other sources
-
-Use **Import state & local**. Download the template and fill in details from the official agency sites. Import by category. The importer accepts columns like `Title`, `Agency`, `Close Date`, `Award Range`, `URL`, `Eligibility`, `Description` as well as the native ARCS master format. Imported records are marked *unverified*. State agency sites do not provide a verified general-public API integrated here. **FundHubWA is primarily focused on climate / clean energy, not general arts funding.**
-
-## Persistence
-
-This is a local prototype. Session changes are NOT persisted between server restarts or shared between browsers. Export **arcs_grants_master.csv** and the application-tracker CSV, then restore them next time. For real shared online use, add a proper persistent database (e.g. hosted Postgres with authentication), secret management, and scheduled refresh jobs before deployment.
-
-## Safety and provenance
-
-Do not treat scores as eligibility or success predictions. The v3 research snapshot dates to November 2, 2026; old deadlines are flagged automatically, but a listed rolling or open status must be confirmed on the source website. Never commit API keys to GitHub. Federal searches and imports need a network connection where applicable. No application is submitted by this tool.
-
-## Run tests
-
-```bash
-python -m unittest discover -s tests -v
+```powershell
+py -3.13 -m pip install -r requirements.txt
+py -3.13 -m streamlit run app.py
 ```
+
+## Important limits and evidence rules
+
+1. **A webpage check is live, but it is not a guaranteed complete search of the web.** It follows configured official-source sites and a bounded set of links. Some sites block requests, require JavaScript, or publish PDF-only application details. Diagnostics report failures.
+2. **Deadlines and eligibility remain provisional.** Multiple dated programs on one page, partial HTML, amendments and organization-specific rules require funder confirmation. No tool can prove ARCS eligibility using only website text without ARCS's legal/address/program details.
+3. **IRS foundation history is not a current grant application.** A foundation that previously awarded money may be invitation-only, have changed priorities, or no longer fund. This version finds *historical prospects with evidence* and separately checks configured current foundation sites.
+4. **NCCS public data can be large.** Each live scan downloads an annual CSV (2025, 2024 or 2023). It streams data rather than materializing the entire table. The app limits transfers to 240 MB per grants-paid file and 90 MB for the header file, and caps displayed matches. Scans can fail on hosting/network restrictions and this will be shown in diagnostics. A single tax year is not all IRS history.
+5. **Shared storage** is not yet implemented. Each user sees a session-level result set. This is not a shared multi-user application tracker.
+6. **No runtime external integration test completed in the build environment** (network access blocked). Python syntax and four deterministic parser/data tests passed. Verify external websites and NCCS table access in your deployed Streamlit app.
+
+## Data references
+
+- Federal API: https://simpler.grants.gov/developers
+- Official public IRS e-file returns: https://www.irs.gov/charities-non-profits/form-990-series-downloads
+- NCCS IRS-derived 990-PF tables, published October 2026: https://nccs.urban.org/nccs/catalogs/catalog-efilepf-v3_1.html
+- Data dictionary: https://nonprofit-open-data-collective.github.io/concordance990/articles/data-dictionary-990pf.html
+
+This is a research assistant, not an eligibility or application approval system.
